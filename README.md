@@ -4,6 +4,8 @@
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 
+https://www.udemy.com/certificate/UC-0b9b7f28-5078-4dc3-b7a0-25d26b95c935/
+
 A portfolio of **22 runnable, self-verifying C++ programs (~1,800 lines)** covering the full arc of
 modern C++: from primitive types and pointers, through OOP, move semantics, templates and the STL,
 to concurrency and the C++17 library. Every program asserts its own results, so the repository

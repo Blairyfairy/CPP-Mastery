@@ -1,0 +1,60 @@
+cmake_minimum_required(VERSION 3.16)
+project(BlairPage VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+option(BP_WARNINGS_AS_ERRORS "Treat warnings as errors" OFF)
+option(BP_SANITIZE "Build with Address+UB sanitizers (GCC/Clang)" OFF)
+
+find_package(Threads REQUIRED)
+find_package(TBB QUIET)  # optional: enables the std::execution::par demos with libstdc++
+
+include(CTest)  # provides BUILD_TESTING and enable_testing()
+
+file(GLOB_RECURSE BP_SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
+
+foreach(src IN LISTS BP_SOURCES)
+  get_filename_component(module "${src}" DIRECTORY)
+  get_filename_component(module "${module}" NAME)
+  get_filename_component(name "${src}" NAME_WE)
+  set(target "${module}__${name}")
+
+  add_executable(${target} "${src}")
+  target_include_directories(${target} PRIVATE include)
+  target_link_libraries(${target} PRIVATE Threads::Threads)
+  set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /permissive-)
+    if(BP_WARNINGS_AS_ERRORS)
+      target_compile_options(${target} PRIVATE /WX)
+    endif()
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    if(BP_WARNINGS_AS_ERRORS)
+      target_compile_options(${target} PRIVATE -Werror)
+    endif()
+    if(BP_SANITIZE)
+      target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+      target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+    endif()
+  endif()
+
+  if(name STREQUAL "parallel_algorithms")
+    if(TBB_FOUND)
+      target_link_libraries(${target} PRIVATE TBB::tbb)
+      target_compile_definitions(${target} PRIVATE BP_HAVE_PARALLEL_STL)
+    elseif(MSVC)
+      target_compile_definitions(${target} PRIVATE BP_HAVE_PARALLEL_STL)
+    endif()
+  endif()
+
+  if(BUILD_TESTING)
+    add_test(NAME ${target} COMMAND ${target})
+  endif()
+endforeach()
